@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/FixtureViewer.php';
+require_once __DIR__ . '/PropertyForm.php';
 
 function db()
 {
