@@ -4,22 +4,48 @@
     function collectCategories() {
         var cats = [];
 
-        $('.category_checked').each(function () {
-            cats[cats.length] = $(this).attr('data-category-chpu');
+        $('.js-category:checked').each(function () {
+            cats[cats.length] = $(this)
+                .closest('.add_good_name_category')
+                .attr('data-category-chpu');
         });
 
         return cats;
     }
 
-    // Фрагмент упрощён из legacy main.js. Сейчас он неверно собирает часть типов полей.
     function collectPropertyValues() {
         var propertyMas = {};
 
-        $('.name_select_rielt').each(function () {
-            var propertyId = $(this).attr('data-property');
-            var value = $(this).find('input.ag_pole_good, select.ag_pole_good').first().val();
+        $('.property_all .name_select_rielt').each(function () {
+            var $property = $(this);
+            var propertyId = $property.attr('data-property');
+            var $multiple = $property.find('.checkbox_property');
+            var values = [];
+            var $field;
+            var value;
 
-            if (value !== undefined && value !== '') {
+            if (propertyId === undefined || propertyId === '') {
+                return;
+            }
+
+            if ($multiple.length > 0) {
+                $multiple.find('input[type="checkbox"]:checked').each(function () {
+                    values[values.length] = $(this)
+                        .closest('.line_chek')
+                        .find('.ckeck_param')
+                        .attr('data-val');
+                });
+
+                if (values.length > 0) {
+                    propertyMas[propertyId] = values.join(':::');
+                }
+                return;
+            }
+
+            $field = $property.find('input.ag_pole_good, select.ag_pole_good').first();
+            value = $field.val();
+
+            if (value !== undefined && value !== null && value !== '') {
                 propertyMas[propertyId] = value;
             }
         });
@@ -30,7 +56,12 @@
     $('body').on('click', '.addgood_click', function () {
         var $button = $(this);
 
-        $button.prop('disabled', true).text('Проверяем…');
+        if ($button.data('property-refresh-pending')
+            || $button.data('properties-synchronized') === false) {
+            return;
+        }
+
+        $button.data('preview-pending', true).prop('disabled', true).text('Проверяем…');
 
         $.ajax({
             type: 'POST',
@@ -47,7 +78,13 @@
                 $('.js-payload-preview').text('Не удалось проверить отправку.');
             },
             complete: function () {
-                $button.prop('disabled', false).text('Проверить отправку');
+                $button.data('preview-pending', false)
+                    .prop(
+                        'disabled',
+                        !!$button.data('property-refresh-pending')
+                            || $button.data('properties-synchronized') === false
+                    )
+                    .text('Проверить отправку');
             }
         });
     });
